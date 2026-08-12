@@ -1,0 +1,9 @@
+// Description: Scans inbound email telemetry for non-ASCII characters in the sender domain to flag homoglyph phishing attempts.
+// Table: EmailEvents
+
+EmailEvents
+| where TimeGenerated > ago(7d)
+| where EmailDirection == "Inbound"
+| extend SenderDomain = tostring(split(SenderMailFromAddress, "@")[1])
+| where SenderDomain matches regex @"[^\u0000-\u007F]"
+| project TimeGenerated, RecipientEmailAddress, SenderMailFromAddress, Subject, DeliveryAction
