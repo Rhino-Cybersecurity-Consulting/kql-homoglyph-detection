@@ -1,0 +1,10 @@
+// Description: Identifies new users created with non-ASCII characters in their email domain (IDN abuse / homoglyph spoofing).
+// Table: CloudAppEvents
+
+CloudAppEvents
+| where TimeGenerated > ago(7d)
+| where ActionType == "Create user."
+| extend Email = tostring(parse_json(RawEventData).EmailAddress)
+| extend Domain = tostring(split(Email,"@")[1])
+| where Domain matches regex @"[^\u0000-\u007F]"
+| project TimeGenerated, AccountDisplayName, Email, Domain
