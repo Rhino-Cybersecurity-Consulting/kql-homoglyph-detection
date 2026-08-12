@@ -1,0 +1,13 @@
+// Description: High-performance optimized query targeting high-risk recipient groups first, utilizing watchlists to minimize regex overhead.
+// Tables: EmailEvents, Sentinel Watchlists
+
+let HighRiskRecipients = _GetWatchlist('HighRiskUsers') | project UserEmail;
+EmailEvents
+| where TimeGenerated > ago(1d)
+| where EmailDirection == "Inbound"
+// 1. Filter the entire dataset to only include High-Risk Recipients first to reduce performance cost
+| join kind=inner (HighRiskRecipients) on $left.RecipientEmailAddress == $right.UserEmail
+// 2. Apply the regex operation only on the narrowed dataset
+| extend SenderDomain = tostring(split(SenderMailFromAddress, "@")[1])
+| where SenderDomain matches regex @"[^\u0000-\u007F]"
+| project TimeGenerated, RecipientEmailAddress, SenderMailFromAddress, Subject, DeliveryAction
